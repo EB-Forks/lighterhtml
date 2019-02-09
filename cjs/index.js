@@ -1,7 +1,7 @@
 'use strict';
 const WeakMap = (m => m.__esModule ? /* istanbul ignore next */ m.default : /* istanbul ignore next */ m)(require('@ungap/weakmap'));
 const tta = (m => m.__esModule ? /* istanbul ignore next */ m.default : /* istanbul ignore next */ m)(require('@ungap/template-tag-arguments'));
-const {Wire, wireType, isArray} = require('./shared.js');
+const {isArray} = require('./shared.js');
 const Tagger = (m => m.__esModule ? /* istanbul ignore next */ m.default : /* istanbul ignore next */ m)(require('./tagger.js'));
 
 const wm = new WeakMap;
@@ -23,7 +23,7 @@ function render(node, callback) {
   const prev = container.get(node);
   if (forced || prev !== value) {
     container.set(node, value);
-    appendClean(node, asNode(value, true));
+    appendClean(node, value);
   }
   return node;
 }
@@ -43,18 +43,12 @@ function appendClean(node, fragment) {
   node.appendChild(fragment);
 }
 
-function asNode(result, forceFragment) {
-  return result.nodeType === wireType ?
-    result.valueOf(forceFragment) :
-    result;
-}
-
 function createHook(useRef, view) {
   return function () {
     const ref = useRef(null);
     if (ref.current === null)
       ref.current = view.for(ref);
-    return asNode(ref.current.apply(null, arguments), false);
+    return ref.current.apply(null, arguments);
   };
 }
 
@@ -165,9 +159,7 @@ function unrollArray(arr, i) {
 function wiredContent(node) {
   const childNodes = node.childNodes;
   const {length} = childNodes;
-  return length === 1 ?
-    childNodes[0] :
-    (length ? new Wire(childNodes) : node);
+  return length === 1 ? childNodes[0] : node;
 }
 
 function Hole(type, args) {

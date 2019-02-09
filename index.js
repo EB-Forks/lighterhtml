@@ -103,57 +103,7 @@ var lighterhtml = (function (document,exports) {
     return args;
   }
 
-  /*! (c) Andrea Giammarchi - ISC */
-  var Wire = function (slice, proto) {
-    proto = Wire.prototype;
-    proto.ELEMENT_NODE = 1;
-    proto.nodeType = 111;
-
-    proto.remove = function (keepFirst) {
-      var childNodes = this.childNodes;
-      var first = this.firstChild;
-      var last = this.lastChild;
-      this._ = null;
-
-      if (keepFirst && childNodes.length === 2) {
-        last.parentNode.removeChild(last);
-      } else {
-        var range = this.ownerDocument.createRange();
-        range.setStartBefore(keepFirst ? childNodes[1] : first);
-        range.setEndAfter(last);
-        range.deleteContents();
-      }
-
-      return first;
-    };
-
-    proto.valueOf = function (forceAppend) {
-      var fragment = this._;
-      var noFragment = fragment == null;
-      if (noFragment) fragment = this._ = this.ownerDocument.createDocumentFragment();
-
-      if (noFragment || forceAppend) {
-        for (var n = this.childNodes, i = 0, l = n.length; i < l; i++) {
-          fragment.appendChild(n[i]);
-        }
-      }
-
-      return fragment;
-    };
-
-    return Wire;
-
-    function Wire(childNodes) {
-      var nodes = this.childNodes = slice.call(childNodes, 0);
-      this.firstChild = nodes[0];
-      this.lastChild = nodes[nodes.length - 1];
-      this.ownerDocument = nodes[0].ownerDocument;
-      this._ = null;
-    }
-  }([].slice);
-
   var isArray = Array.isArray;
-  var wireType = Wire.prototype.nodeType;
 
   /*! (c) Andrea Giammarchi - ISC */
   var createContent = function (document) {
@@ -1004,17 +954,7 @@ var lighterhtml = (function (document,exports) {
     }
   }();
 
-  var OWNER_SVG_ELEMENT = 'ownerSVGElement'; // returns nodes from wires and components
-
-  var asNode = function asNode(item, i) {
-    return item.nodeType === wireType ? 1 / i < 0 ? i ? item.remove(true) : item.lastChild : i ? item.valueOf(true) : item.firstChild : item;
-  }; // returns true if domdiff can handle the value
-
-
-  var canDiff = function canDiff(value) {
-    return 'ELEMENT_NODE' in value;
-  }; // generic attributes helpers
-
+  var OWNER_SVG_ELEMENT = 'ownerSVGElement'; // generic attributes helpers
 
   var hyperAttribute = function hyperAttribute(node, attribute) {
     var oldValue;
@@ -1135,7 +1075,6 @@ var lighterhtml = (function (document,exports) {
     //    update the node with the resulting list of content
     any: function any(node, childNodes) {
       var diffOptions = {
-        node: asNode,
         before: node
       };
       var nodeType = OWNER_SVG_ELEMENT in node ?
@@ -1205,7 +1144,7 @@ var lighterhtml = (function (document,exports) {
                     break;
                 }
               }
-            } else if (canDiff(value)) {
+            } else if ('ELEMENT_NODE' in value) {
               childNodes = domdiff(node.parentNode, childNodes, value.nodeType === 11 ? slice.call(value.childNodes) : [value], diffOptions);
             } else if ('text' in value) {
               anyContent(String(value.text));
@@ -1283,7 +1222,7 @@ var lighterhtml = (function (document,exports) {
 
     if (forced || prev !== value) {
       container.set(node, value);
-      appendClean(node, asNode$1(value, true));
+      appendClean(node, value);
     }
 
     return node;
@@ -1298,15 +1237,11 @@ var lighterhtml = (function (document,exports) {
     node.appendChild(fragment);
   }
 
-  function asNode$1(result, forceFragment) {
-    return result.nodeType === wireType ? result.valueOf(forceFragment) : result;
-  }
-
   function createHook(useRef, view) {
     return function () {
       var ref = useRef(null);
       if (ref.current === null) ref.current = view.for(ref);
-      return asNode$1(ref.current.apply(null, arguments), false);
+      return ref.current.apply(null, arguments);
     };
   }
 
@@ -1442,7 +1377,7 @@ var lighterhtml = (function (document,exports) {
   function wiredContent(node) {
     var childNodes = node.childNodes;
     var length = childNodes.length;
-    return length === 1 ? childNodes[0] : length ? new Wire(childNodes) : node;
+    return length === 1 ? childNodes[0] : node;
   }
 
   function Hole(type, args) {

@@ -3,22 +3,9 @@ import domdiff from 'domdiff';
 import domtagger from 'domtagger';
 import hyperStyle from 'hyperhtml-style';
 
-import {wireType, isArray} from './shared.js';
+import {isArray} from './shared.js';
 
 const OWNER_SVG_ELEMENT = 'ownerSVGElement';
-
-// returns nodes from wires and components
-const asNode = (item, i) => item.nodeType === wireType ?
-  (
-    (1 / i) < 0 ?
-      (i ? item.remove(true) : item.lastChild) :
-      (i ? item.valueOf(true) : item.firstChild)
-  ) :
-  item
-;
-
-// returns true if domdiff can handle the value
-const canDiff = value => 'ELEMENT_NODE' in value;
 
 // generic attributes helpers
 const hyperAttribute = (node, attribute) => {
@@ -141,7 +128,7 @@ Tagger.prototype = {
   //  * it's an Array, resolve all values if Promises and/or
   //    update the node with the resulting list of content
   any(node, childNodes) {
-    const diffOptions = {node: asNode, before: node};
+    const diffOptions = {before: node};
     const nodeType = OWNER_SVG_ELEMENT in node ? /* istanbul ignore next */ 'svg' : 'html';
     let fastPath = false;
     let oldValue;
@@ -218,7 +205,7 @@ Tagger.prototype = {
                   break;
               }
             }
-          } else if (canDiff(value)) {
+          } else if ('ELEMENT_NODE' in value) {
             childNodes = domdiff(
               node.parentNode,
               childNodes,
